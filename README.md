@@ -1,6 +1,6 @@
 # Delite
 
-Delite is a lightweight exposure detector for adjusting overexposed raw image data by reducing the overall pixel intensity. The resulting image is scaled down to an 8-bit .bmp file, such that it can be viewed on a standard RGB display (there are only **256 shades** of gray available on most displays). Therefore, the output representation will incurr a precision loss in terms of color depth, but will suffice as a preview.
+Delite is a lightweight exposure detector for adjusting overexposed raw image data by reducing the overall pixel intensity. The resulting image is scaled down to an 8-bit .bmp file, such that it can be viewed on a standard display (there are only **256 shades** of gray available on most displays). Therefore, the output representation will incurr a precision loss in terms of color depth, but will suffice as a preview.
 
 For example, the true nature of a CT image would be viewable on a dedicated display capable of showing full 16-bit grayscale rasters. Supposedly, you do not posses such a device at home. :)
 
@@ -10,7 +10,7 @@ Currently, there is support only for **16-bit grayscale** pixel data, which can 
 
 - GNU Make (> 3.x).
 - A standard C compiler toolchain which supports the C99 standard (i.e. ISO/IEC 9899:1999).
-- An 8-bit standard display and an image viewer such as GIMP.
+- An image viewer (e.g. GIMP).
 
 ## Usage
 
@@ -30,10 +30,10 @@ If you want to have it available globally, run `make install`.
 Flag | Details
 ---- | ----
 -h | Display help message
--f | Raw pixel data (must be in *binary*)
+-f | Raw pixel data file (must be *binary*)
 -p | The first number of pixels to adjust for over exposure (default is 50)
 -l | Adjustment level given as a percentage (default is 50%)
--o | Output 8-bit bitmap preview file as a result of the adjustment
+-o | Output preview file as a result of the adjustment (default is out.bmp)
 
 Example:
 Detect overexposed pixels by turning the first 50 pixels which have the highest value black:
@@ -46,7 +46,9 @@ delite -f demo/sendor_data.bin -l 100 -o adjusted.bmp
 
 The raw data that gets passed as an input must not exceed **2GB** in size. *libc* defaults to x86 (IA-32) for portability, therefore the 2^32-1 limitation). 
 
-The file must contain each pixel value encoded as a 16-bit word and no other information beside it. Delite will strive to generate the downscaled image as a square bitmap (NxN).
+The file must contain each pixel value encoded as a 16-bit value (from 0 to 65,535) and no other information beside it. Delite will strive to generate the downscaled image as a square bitmap (NxN). If the input length is not a perfect square, the final pixel array will be truncated.
+
+The demo data set contains 45,000 random bytes in the 0x80-0xFF range, which would result in a 150x150 8-bit bitmap after running `delite`.
 
 ## Licensing
 
