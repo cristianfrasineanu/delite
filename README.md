@@ -35,6 +35,8 @@ Flag | Details
 -l | Adjustment level given as a percentage (default is 50%)
 -o | Output preview file as a result of the adjustment (default is out.bmp)
 
+The resulting pixel data will also be written to a separate binary file, named `altered.bin`, in the current directory.
+
 Example:
 Detect overexposed pixels by turning the first 50 pixels which have the highest value black:
 
@@ -44,7 +46,7 @@ delite -f demo/sendor_data.bin -l 100 -o adjusted.bmp
 
 ### Input format
 
-The raw data that gets passed as an input must not exceed **2GB** in size. *libc* defaults to x86 (IA-32) for portability, therefore the 2^32-1 limitation). 
+The raw data that gets passed as an input must not exceed **2GB** in size. *libc* defaults to x86 (IA-32) for portability, hence the 2^32-1 limitation). 
 
 The file must contain each pixel value encoded as a 16-bit value (from 0 to 65,535) and no other information beside it. Delite will strive to generate the downscaled image as a square bitmap (NxN). If the input length is not a perfect square, the final pixel array will be truncated.
 
