@@ -323,6 +323,8 @@ static int AdjustPixelData(uint16_t *data,
             data[max_index] *= (1 - ((float) adjustment_level) / 100);
             adjusted_flag[max_index] = true;
         }
+
+        free(adjusted_flag);
     } 
 
     return status;
@@ -499,6 +501,8 @@ static int RunAdjustment(const char *input_file_path,
 
     /* Free tolerates NULL, no need to check. */
     free(raw_data);
+    free(output_bmp->color_table);
+    free(output_bmp->pixel_data);
     free(output_bmp);
 
     return status;
