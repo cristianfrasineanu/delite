@@ -297,9 +297,9 @@ static int AdjustPixelData(uint16_t *data,
                            uint32_t size,
                            uint32_t pixel_count,
                            uint8_t adjustment_level) {
-    unsigned i = 0U;
-    unsigned j = 0U;
-    uint16_t current_max = 0U;
+    unsigned i = 0;
+    unsigned j = 0;
+    uint16_t current_max = 0;
     uint16_t max_index = 0;
     int status = EXIT_SUCCESS;
     /* In this case, a selection algorithm won't be more efficient.
@@ -313,7 +313,7 @@ static int AdjustPixelData(uint16_t *data,
     }
     else {
         for (i = 0; i < pixel_count; i++) {
-            current_max = 0U;
+            current_max = 0;
             for (j = 0; j < size; j++) {
                 if ((data[j] > current_max) && (!adjusted_flag[j])) {
                     current_max = data[j];
@@ -331,7 +331,7 @@ static int AdjustPixelData(uint16_t *data,
 }
 
 static uint32_t ReadBytesFromFile(FILE *in, void **data) {
-    uint32_t size = 0U;
+    uint32_t size = 0;
     
     if ((NULL != in) && (NULL != data)) {
         /* Get total size. */
@@ -355,26 +355,31 @@ static uint32_t ReadBytesFromFile(FILE *in, void **data) {
 static int GeneratePreviewBitmapFrom16Bit(const uint16_t *data, 
                                           uint32_t size,
                                           struct Bitmap **bmp) {
-    unsigned i = 0U;
-    unsigned image_size = 0U;
+    unsigned i = 0;
+    unsigned image_size = 0;
     union Raw_Pixel_Data *scaled_data = NULL;
     int status = EXIT_SUCCESS;
     
-    scaled_data = malloc(size * sizeof(uint8_t));
+    scaled_data = malloc(size * sizeof(union Raw_Pixel_Data));
     if ((NULL == data) || (scaled_data == NULL) 
         || (0 == size) || (NULL == bmp)) {
         status = EXIT_FAILURE;
     }
     
-    for (i = 0; i < size; i++) {
-        scaled_data[i].u8 = data[i] / 256;
-    }
-    
     status = BitmapInit8BitGrayscale(bmp);
     if (EXIT_SUCCESS == status) {
         image_size = sqrt(size);
-        /* Trim image size if the data size isn't a perfect square. */
-        size -= (size - image_size * image_size);
+        /* The width must be a multiple of 4. */
+        image_size = image_size & ~0x03;
+        /* Trim data size if the size isn't a perfect square. */
+        size = image_size * image_size;
+    
+        for (i = 0; i < size; i++) {
+            /* TODO: Average out the scaled data array
+                     in case the size gets trimmed. */
+            scaled_data[i].u8 = data[i] / 256U;
+        }
+
         status = BitmapSetWidthHeight(*bmp, image_size, image_size);
         if (EXIT_SUCCESS == status) {
             status = BitmapFillPixelData(*bmp, scaled_data);
@@ -405,7 +410,6 @@ static int WriteBytesToFile(FILE *out, const void *data, uint32_t count) {
 static int WriteBmpToFile(FILE *out, const struct Bitmap *bmp) {
     int status = EXIT_SUCCESS;
     void *mem_to_write = NULL;
-    uint32_t bmp_total_size = 0U;
     
     if (NULL == bmp) {
         status = EXIT_FAILURE;
@@ -422,11 +426,11 @@ static int WriteBmpToFile(FILE *out, const struct Bitmap *bmp) {
                    bmp->color_table,
                    bmp->info_header.colors_used 
                    * sizeof(struct Bitmap_ColorEntry));
-            memcpy(mem_to_write + bmp->header.pixel_data_offest,
+            memcpy(mem_to_write + bmp->header.pixel_data_offset,
                    bmp->pixel_data,
                    bmp->info_header.image_size);
             
-            status = WriteBytesToFile(out, mem_to_write, bmp_total_size);
+            status = WriteBytesToFile(out, mem_to_write, GET_BITMAP_SIZE(bmp));
         }
         else {
             status = EXIT_FAILURE;
@@ -451,9 +455,9 @@ static int RunAdjustment(const char *input_file_path,
     raw_data_size = ReadBytesFromFile(in, (void **) &raw_data);
 
     /* TODO: Add dedicated error reporting. */ 
-    if (raw_data_size > 0U) {
+    if (raw_data_size > 0) {
         status = AdjustPixelData(raw_data,
-                                 raw_data_size,
+                                 raw_data_size / sizeof(raw_data[0]),
                                  pixel_count,
                                  adjustment_level);
         if (EXIT_SUCCESS == status) {
@@ -461,17 +465,21 @@ static int RunAdjustment(const char *input_file_path,
             out = fopen(ALTERED_FILE_PATH, "wb");
             status = WriteBytesToFile(out, raw_data, raw_data_size);
             if (EXIT_SUCCESS == status) {
+                fclose(out);
                 status = GeneratePreviewBitmapFrom16Bit(raw_data, 
-                                                        raw_data_size,
+                                                        raw_data_size /
+                                                        sizeof(raw_data[0]),
                                                         &output_bmp);
                 if (EXIT_SUCCESS == status) {
-                    fclose(out);
                     out = fopen(preview_file_path, "wb");
                     status = WriteBmpToFile(out, output_bmp);
                     if (EXIT_FAILURE == status) {
                         printf("Unexpected error when writing the "
                                "preview bitmap.\n");
                     }
+
+                    free(output_bmp->color_table);
+                    free(output_bmp->pixel_data);
                 }
                 else {
                     printf("Unexpected error when generating the preview.\n");
@@ -501,8 +509,6 @@ static int RunAdjustment(const char *input_file_path,
 
     /* Free tolerates NULL, no need to check. */
     free(raw_data);
-    free(output_bmp->color_table);
-    free(output_bmp->pixel_data);
     free(output_bmp);
 
     return status;

@@ -17,9 +17,9 @@
  * SYMBOLIC CONSTANTS AND MACROS
  ****************************************************************************/
 /* Bitmap magic sequence, corresponding to 'BM' in ASCII. */
-#define BITMAP_MAGIC 0x424DU
+#define BITMAP_MAGIC 0x4D42
 
-/* Determine the actual size of the bitmap by summing up the members. */
+/* Determine the actual size of the bitmap by summing up the members' sizes. */
 #define GET_BITMAP_SIZE(bmp) (sizeof(struct Bitmap_Header) + \
                              (bmp)->info_header.header_size + \
                              (bmp)->info_header.colors_used * \
@@ -48,14 +48,14 @@ struct Bitmap_Header {
     uint32_t file_size;         /* The total file size in bytes
                                    (header+info header+color table+data) */
     const uint32_t reserved;    /* Not used */
-    uint32_t pixel_data_offest; /* The offset to the actual pixel data */
+    uint32_t pixel_data_offset; /* The offset to the actual pixel data */
 };
 
 /**
  *  @brief Bitmap specific information.
  */ 
 struct Bitmap_Info_Header {
-    const uint32_t header_size;       /* The current header size */
+    const uint32_t header_size;       /* The info header size */
     uint32_t width;                   /* Bitmap width 
                                         (must be a multiple of 4 bytes) */
     uint32_t height;                  /* Bitmap height */
@@ -106,7 +106,7 @@ struct Bitmap {
 #ifdef USE_COLOR_TABLE
     struct Bitmap_ColorEntry *color_table;
 #endif /* USE_COLOR_TABLE */
-    union Raw_Pixel_Data *pixel_data;
+    void *pixel_data;
 };
 
 /* Restore the initial memory alignment. */
@@ -144,15 +144,15 @@ int BitmapInit8BitGrayscale(struct Bitmap **bitmap);
  *          EXIT_FAILURE, if not successful.
  */
 int BitmapSetWidthHeight(struct Bitmap *bitmap, 
-                         uint32_t width,
-                         uint32_t height);
+                         uint16_t width,
+                         uint16_t height);
 
 /**
- *  @brief Get the raw pixel data from a bitmap.
+ *  @brief Get the pixel data from a bitmap.
  *
  *  Determine the pixel data location to read from by parsing the 
- *  information header of the bitmap, and then change the reference
- *  to the beginning of the pixel array.
+ *  information header of the bitmap, and then pass the reference
+ *  to the beginning of the bitmap pixel array.
  *  @param bitmap  Bitmap to read from
  *  @param data    Reference to the beginning of the array
  * 
@@ -169,7 +169,7 @@ uint32_t BitmapGetPixelData(const struct Bitmap *bitmap,
  *  The input data array is assumed to have at least image_size bytes,
  *  otherwise the behavior is undefined.
  *  @param bitmap  Bitmap to be modified
- *  @param data    Array containing the raw pixel values
+ *  @param data    Array containing the pixel values
  * 
  *  @return EXIT_SUCCESSFUL, if successful.
  *          EXIT_FAILURE, if not successful.
