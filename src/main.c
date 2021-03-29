@@ -292,29 +292,36 @@ static bool FileIsRegular(const char *file_path) {
    return result;
 }
 
+/* TODO: Add support for other word sizes. */
 static int AdjustPixelData(uint16_t *data, 
                            uint32_t size,
                            uint32_t pixel_count,
                            uint8_t adjustment_level) {
-    int status = EXIT_SUCCESS;
     unsigned i = 0U;
     unsigned j = 0U;
-    uint16_t previous_max = UINT16_MAX;
     uint16_t current_max = 0U;
+    uint16_t max_index = 0;
+    int status = EXIT_SUCCESS;
+    /* In this case, a selection algorithm won't be more efficient.
+       Use flag array instead to avoid wasting memory. */
+    bool *adjusted_flag = NULL;
 
-    if ((NULL == data) || (0 == size)) {
+    adjusted_flag = calloc(size, sizeof(bool));
+
+    if ((NULL == data) || (NULL == adjusted_flag) || (0 == size)) {
         status = EXIT_FAILURE;
     }
     else {
         for (i = 0; i < pixel_count; i++) {
             current_max = 0U;
             for (j = 0; j < size; j++) {
-                if ((data[j] > current_max) && (data[j] <= previous_max)) {
+                if ((data[j] > current_max) && (!adjusted_flag[j])) {
                     current_max = data[j];
+                    max_index = j;
                 }
             }
-            data[j] *= 1 - ((float) adjustment_level) / 100;
-            previous_max = current_max;
+            data[max_index] *= (1 - ((float) adjustment_level) / 100);
+            adjusted_flag[max_index] = true;
         }
     } 
 
