@@ -424,8 +424,13 @@ static int RunAdjustment(const char *input_file_path,
         status = EXIT_FAILURE;
     }
 
-    fclose(in);
-    fclose(out);
+    if (NULL != in) {
+        fclose(in);
+    }
+    if (NULL != out) {
+        fclose(out);
+    }
+
     /* Free tolerates NULL, no need to check. */
     free(raw_data);
     free(output_bmp);
