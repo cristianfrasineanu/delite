@@ -14,10 +14,17 @@
 #include <stdlib.h>
 
 /****************************************************************************
- * SYMBOLIC CONSTANTS
+ * SYMBOLIC CONSTANTS AND MACROS
  ****************************************************************************/
 /* Bitmap magic sequence, corresponding to 'BM' in ASCII. */
 #define BITMAP_MAGIC 0x424DU
+
+/* Determine the actual size of the bitmap by summing up the members. */
+#define GET_BITMAP_SIZE(bmp) (sizeof(struct Bitmap_Header) + \
+                             (bmp)->info_header.header_size + \
+                             (bmp)->info_header.colors_used * \
+                             sizeof(struct Bitmap_ColorEntry) + \
+                             (bmp)->info_header.image_size)
 
 #ifndef USE_COLOR_TABLE
     #warning "Support for monochromatic, 4-bit and 8-bit bitmaps is disabled!"
@@ -121,19 +128,6 @@ struct Bitmap {
  *          EXIT_FAILURE, if not successful.
  */
 int BitmapInit8BitGrayscale(struct Bitmap **bitmap);
-
-/**
- *  @brief Get the bitmap color table.
- *
- *  Copy the color table entries to a 
- *  @param bitmap  Bitmap to read from
- *  @param table   Reference to the beginning of the color table
- * 
- *  @return The size of the color table array, if successful.
- *          -1, if not successful.
- */
-int BitmapGetColorTable(const struct Bitmap *bitmap,
-                        union Raw_Pixel_Data **data);
 #endif /* USE_COLOR_TABLE */
 
 /**
@@ -181,23 +175,6 @@ uint32_t BitmapGetPixelData(const struct Bitmap *bitmap,
  *          EXIT_FAILURE, if not successful.
  */
 int BitmapFillPixelData(struct Bitmap *bitmap, union Raw_Pixel_Data *data);
-
-/**
- *  @brief Scale down a 16-bit encoded array of pixels to 8-bit format.
- * 
- *  The input pixel data gets converted to an 8-bit encoded grayscale image
- *  by dividing each item by 256 (for each 8-bit gray shade,
- *  there are 256 shades in 16-bit format).
- *  @param in     Input pixel data
- *  @param out    Scaled pixel data
- *  @param count  Input elements count
- * 
- *  @return EXIT_SUCCESS, if successful
- *          EXIT_FAILURE, otherwise.
- */
-static int Scale16BitTo8Bit(uint16_t *in,
-                            uint8_t **out, 
-                            uint32_t count);
 
 /****************************************************************************/
 

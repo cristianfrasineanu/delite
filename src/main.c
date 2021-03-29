@@ -88,14 +88,14 @@ static uint32_t ReadBytesFromFile(FILE *in, void **data);
  *  The array is first scaled down to an 8-bit encoded array, then
  *  the bitmap is initialized and populated with the given pixel data. 
  *  @param data  Input pixel data
- *  @param count Number of pixels to consider
+ *  @param size  Data size
  *  @param bmp   Output preview bitmap
  * 
  *  @return EXIT_SUCCESS, if successful.
  *          EXIT_FAILURE, otherwise.
  */
 static int GeneratePreviewBitmapFrom16Bit(const uint16_t *data, 
-                                          uint32_t count,
+                                          uint32_t size,
                                           struct Bitmap **bmp);
 
 /**
@@ -351,9 +351,35 @@ static uint32_t ReadBytesFromFile(FILE *in, void **data) {
 }
 
 static int GeneratePreviewBitmapFrom16Bit(const uint16_t *data, 
-                                          uint32_t count,
+                                          uint32_t size,
                                           struct Bitmap **bmp) {
-    return EXIT_SUCCESS;
+    unsigned i = 0U;
+    unsigned image_size = 0U;
+    union Raw_Pixel_Data *scaled_data = NULL;
+    int status = EXIT_SUCCESS;
+    
+    scaled_data = malloc(size * sizeof(uint8_t));
+    if ((NULL == data) || (scaled_data == NULL) 
+        || (0 == size) || (NULL == bmp)) {
+        status = EXIT_FAILURE;
+    }
+    
+    for (i = 0; i < size; i++) {
+        scaled_data[i].u8 = data[i] / 256;
+    }
+    
+    status = BitmapInit8BitGrayscale(bmp);
+    if (EXIT_SUCCESS == status) {
+        image_size = sqrt(size);
+        /* Trim image size if the data size isn't a perfect square. */
+        size -= (size - image_size * image_size);
+        status = BitmapSetWidthHeight(*bmp, image_size, image_size);
+        if (EXIT_SUCCESS == status) {
+            status = BitmapFillPixelData(*bmp, scaled_data);
+        }
+    }
+    
+    return status;
 }
 
 static int WriteBytesToFile(FILE *out, const void *data, uint32_t count) {
@@ -367,12 +393,45 @@ static int WriteBytesToFile(FILE *out, const void *data, uint32_t count) {
             fflush(out);
         }
     }
+    else {
+        status = EXIT_FAILURE;
+    }
 
     return status;
 }
 
 static int WriteBmpToFile(FILE *out, const struct Bitmap *bmp) {
-    return EXIT_SUCCESS;
+    int status = EXIT_SUCCESS;
+    void *mem_to_write = NULL;
+    uint32_t bmp_total_size = 0U;
+    
+    if (NULL == bmp) {
+        status = EXIT_FAILURE;
+    }
+    else {
+        mem_to_write = malloc(GET_BITMAP_SIZE(bmp));
+        if (NULL != mem_to_write) {
+            memcpy(mem_to_write, &(bmp->header), sizeof(bmp->header));
+            memcpy(mem_to_write + sizeof(bmp->header),
+                   &(bmp->info_header),
+                   bmp->info_header.header_size);
+            memcpy(mem_to_write + sizeof(bmp->header) 
+                   + bmp->info_header.header_size, 
+                   bmp->color_table,
+                   bmp->info_header.colors_used 
+                   * sizeof(struct Bitmap_ColorEntry));
+            memcpy(mem_to_write + bmp->header.pixel_data_offest,
+                   bmp->pixel_data,
+                   bmp->info_header.image_size);
+            
+            status = WriteBytesToFile(out, mem_to_write, bmp_total_size);
+        }
+        else {
+            status = EXIT_FAILURE;
+        }
+    }
+
+    return status;
 }
 
 static int RunAdjustment(const char *input_file_path,

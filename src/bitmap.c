@@ -7,12 +7,16 @@
 
 #ifdef USE_COLOR_TABLE
 int BitmapInit8BitGrayscale(struct Bitmap **bitmap) {
-    return EXIT_SUCCESS;
-}
-
-int BitmapGetColorTable(const struct Bitmap *bitmap,
-                        union Raw_Pixel_Data **data) {
-    return EXIT_SUCCESS;
+    int status = EXIT_SUCCESS;
+    struct Bitmap_ColorEntry *color_table = NULL;
+    
+    if (NULL == bitmap) {
+        status = EXIT_FAILURE;
+    }
+    
+    *bitmap = malloc(sizeof(struct Bitmap));
+    
+    return status;
 }
 #endif /* USE_COLOR_TABLE */
 
@@ -24,15 +28,11 @@ int BitmapSetWidthHeight(struct Bitmap *bitmap,
 
 uint32_t BitmapGetPixelData(const struct Bitmap *bitmap,
                             union Raw_Pixel_Data **data) {
+    /* TODO (useful for reverse engineering images) */
+
     return 0;
 }
 
 int BitmapFillPixelData(struct Bitmap *bitmap, union Raw_Pixel_Data *data) {
-    return EXIT_SUCCESS;
-}
-
-static int Scale16BitTo8Bit(uint16_t *in,
-                            uint8_t **out, 
-                            uint32_t count) {
     return EXIT_SUCCESS;
 }
