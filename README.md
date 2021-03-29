@@ -50,7 +50,13 @@ The raw data that gets passed as an input must not exceed **2GB** in size. *libc
 
 The file must contain each pixel value encoded as a 16-bit value (from 0 to 65,535) and no other information beside it. Delite will strive to generate the downscaled image as a square bitmap (NxN). If the input length is not a perfect square, the final pixel array will be truncated.
 
-The demo data set contains 45,000 random bytes in the 0x80-0xFF range, which would result in a 150x150 8-bit bitmap after running `delite`.
+The demo data set contains 45,000 random bytes in the 0x80-0xFF range (noise) and a separate file which contains two halves (one white and one gray). The final preview would be a 148x148 8-bit bitmap after running `delite`.
+
+### Before & after
+
+![before](demo/original.bmp)
+
+![after](demo/dexposed.bmp)
 
 ## Licensing
 
