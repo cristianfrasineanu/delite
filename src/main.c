@@ -22,6 +22,12 @@
 #include <unistd.h>
 
 /****************************************************************************
+ * SYMBOLIC CONSTANTS
+ ****************************************************************************/
+/* Default path for the binary file containing the adjusted pixel data. */
+#define ALTERED_FILE_PATH "altered.bin"
+
+/****************************************************************************
  * LOCAL DECLARATIONS
  ****************************************************************************/
 /**
@@ -116,17 +122,31 @@ static int WriteBytesToFile(FILE *out, const void *data, uint32_t count);
  */
 static int WriteBmpToFile(FILE *out, const struct Bitmap *bmp);
 
+/**
+ *  @brief Run parameterized pixel adjustment.
+ * 
+ *  Read the input raw byte stream, detect overexposed pixels and
+ *  output the altered binary file + the preview bitmap.
+ *  @param input_file_path    Path to the input file 
+ *  @param preview_file_path  Path to the final preview bitmap 
+ *  @param pixel_count        Number of pixels to adjust
+ *  @param adjustment_level   Adjustment level as percentage
+ * 
+ *  @return EXIT_SUCCESS, if successful.
+ *          EXIT_FAILURE, otherwise.
+ */
+static int RunAdjustment(const char *input_file_path,
+                         const char *preview_file_path,
+                         unsigned pixel_count,
+                         unsigned adjustment_level);
+
 /****************************************************************************/
 
 /**
  *  @brief Main function
  * 
- *  Validate the user input received via CLI and process the data as follows:
- *      - parse user arguments.
- *      - validate them.
- *      - read the raw data byte stream.
- *      - adjust the pixel values.
- *      - output the preview bitmap and altered .bin
+ *  Validate the user input received via CLI arguments, parse the arguments
+ *  and run the adjustment algo.
  *  @param argc  Number of arguments
  *  @param argv  Reference to the argument array
  * 
@@ -134,17 +154,11 @@ static int WriteBmpToFile(FILE *out, const struct Bitmap *bmp);
  *          EXIT_FAILURE, otherwise.
  */
 int main (int argc, char **argv) {
-    FILE *in = NULL;
-    FILE *out = NULL;
-    struct Bitmap *output_bmp = NULL;
     char **arg_iterator = NULL;
     char input_file_path[256] = { '\0' };
     char preview_file_path[256] = "out.bmp";
-    char altered_file_path[256] = "altered.bin";
     unsigned pixel_count = 50U;
     unsigned adjustment_level = 50U;
-    uint16_t *raw_data = NULL;
-    uint32_t raw_data_size = 0U;
     int status = EXIT_SUCCESS;
 
     /* Need at least one argument. */ 
@@ -237,7 +251,6 @@ int main (int argc, char **argv) {
             }
         }
 
-        /* TODO: Flatten the if pyramid via a global error. */ 
         if (EXIT_SUCCESS == status) {
             /* No error so far. Check if we have at least the input path. */
             if (0 == strlen(input_file_path)) {
@@ -245,58 +258,12 @@ int main (int argc, char **argv) {
                 status = EXIT_FAILURE;
             }
             else {
-                in = fopen(input_file_path, "rb");
-                raw_data_size = ReadBytesFromFile(in, (void **) &raw_data);
-                fclose(in);
-
-                if (raw_data_size > 0U) {
-                    status = AdjustPixelData(raw_data,
-                                             raw_data_size,
-                                             pixel_count,
-                                             adjustment_level);
-                    if (EXIT_SUCCESS == status) {
-                        /* Output the adjusted pixel data in binary. */
-                        out = fopen(altered_file_path, "wb");
-                        status = WriteBytesToFile(out, raw_data, raw_data_size);
-                        if (EXIT_SUCCESS == status) {
-                            /* Generate the preview bitmap file. */
-                            fclose(out);
-                            out = fopen(preview_file_path, "wb");
-                            status = GeneratePreviewBitmapFrom16Bit(raw_data, 
-                                                                raw_data_size,
-                                                                &output_bmp);
-                            if (EXIT_SUCCESS == status) {
-                                status = WriteBmpToFile(out, output_bmp);
-                                if (EXIT_FAILURE == status) {
-                                    printf("Unexpected error when writing the "
-                                           "preview bitmap.");
-                                }
-                            }
-                        }
-                        else {
-                            printf("Unexpected error when writing the "
-                                   "adjusted pixel data to file.");
-                        }
-                    }
-                    else {
-                        printf("Unexpected error when processing "
-                               "the pixel data.\n");
-                    }
-
-                }
-                else {
-                    printf("Must provide a non-empty input file.\n");
-                    status = EXIT_FAILURE;
-                }
+                status = RunAdjustment(input_file_path, preview_file_path,
+                                       pixel_count, adjustment_level);
             }
         }
     }
 
-    fclose(out);
-    /* Free tolerates NULL, no need to check. */
-    free(raw_data);
-    free(output_bmp);
-    
     return status;
 }
 
@@ -402,4 +369,69 @@ static int WriteBytesToFile(FILE *out, const void *data, uint32_t count) {
 
 static int WriteBmpToFile(FILE *out, const struct Bitmap *bmp) {
     return EXIT_SUCCESS;
+}
+
+static int RunAdjustment(const char *input_file_path,
+                         const char *preview_file_path,
+                         unsigned pixel_count,
+                         unsigned adjustment_level) {
+    struct Bitmap *output_bmp = NULL;
+    FILE *in = NULL;
+    FILE *out = NULL;
+    uint16_t *raw_data = NULL;
+    uint32_t raw_data_size = 0U;
+    int status = EXIT_SUCCESS;
+
+    in = fopen(input_file_path, "rb");
+    raw_data_size = ReadBytesFromFile(in, (void **) &raw_data);
+
+    /* TODO: Add dedicated error reporting. */ 
+    if (raw_data_size > 0U) {
+        status = AdjustPixelData(raw_data,
+                                 raw_data_size,
+                                 pixel_count,
+                                 adjustment_level);
+        if (EXIT_SUCCESS == status) {
+            /* Output the adjusted pixel data in binary. */
+            out = fopen(ALTERED_FILE_PATH, "wb");
+            status = WriteBytesToFile(out, raw_data, raw_data_size);
+            if (EXIT_SUCCESS == status) {
+                status = GeneratePreviewBitmapFrom16Bit(raw_data, 
+                                                        raw_data_size,
+                                                        &output_bmp);
+                if (EXIT_SUCCESS == status) {
+                    fclose(out);
+                    out = fopen(preview_file_path, "wb");
+                    status = WriteBmpToFile(out, output_bmp);
+                    if (EXIT_FAILURE == status) {
+                        printf("Unexpected error when writing the "
+                               "preview bitmap.\n");
+                    }
+                }
+                else {
+                    printf("Unexpected error when generating the preview.\n");
+                }
+            }
+            else {
+                printf("Unexpected error when writing the "
+                       "adjusted pixel data to file.\n");
+            }
+        }
+        else {
+            printf("Unexpected error when processing the pixel data.\n");
+        }
+
+    }
+    else {
+        printf("Unexpected error when reading the raw input byte stream.\n");
+        status = EXIT_FAILURE;
+    }
+
+    fclose(in);
+    fclose(out);
+    /* Free tolerates NULL, no need to check. */
+    free(raw_data);
+    free(output_bmp);
+
+    return status;
 }
