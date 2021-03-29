@@ -251,16 +251,13 @@ int main (int argc, char **argv) {
             }
         }
 
-        if (EXIT_SUCCESS == status) {
-            /* No error so far. Check if we have at least the input path. */
-            if (0 == strlen(input_file_path)) {
-                printf("Mising input file path.\n");
-                status = EXIT_FAILURE;
-            }
-            else {
-                status = RunAdjustment(input_file_path, preview_file_path,
-                                       pixel_count, adjustment_level);
-            }
+        if ((EXIT_SUCCESS == status) && (0 == strlen(input_file_path))) {
+            printf("You must provide a valid input file path.\n");
+            status = EXIT_FAILURE;
+        }
+        else if (EXIT_SUCCESS == status) {
+            status = RunAdjustment(input_file_path, preview_file_path,
+                                   pixel_count, adjustment_level);
         }
     }
 
