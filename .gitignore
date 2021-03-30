@@ -1,4 +1,6 @@
 .vscode/
 .editorconfig
+*.bin
+*.bmp
 bin/*
 !bin/.gitkeep
