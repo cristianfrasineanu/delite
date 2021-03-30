@@ -9,7 +9,7 @@ Currently, there is support only for **16-bit grayscale** pixel data, which can 
 ## Prerequisites
 
 - GNU Make (> 3.x).
-- A standard C compiler toolchain which supports the C99 standard (i.e. ISO/IEC 9899:1999).
+- gcc or a standard C compiler toolchain which supports the C99 standard (i.e. ISO/IEC 9899:1999).
 - An image viewer (e.g. GIMP).
 
 ## Usage
