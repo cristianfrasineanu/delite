@@ -290,7 +290,7 @@ int main (int argc, char **argv) {
 static void PrintUsage(void) {
     char help_message[] = "Usage: delite -h | "
                           "-f <input_file> [-p pixel_count] "
-                          "[-l adjustment_level] [-o output_file]\n"
+                          "[-l adjustment_level] [-o output_file] [-q]\n"
                           "\n"
                           "-h  Display help message\n"
                           "-f  Raw pixel data file (must be binary)\n"
@@ -299,7 +299,9 @@ static void PrintUsage(void) {
                           "-l  Adjustment level given as a percentage "
                           "(default is 50%)\n"
                           "-o  Output preview file as a result of the "
-                          "adjustment (default is out.bmp)\n";
+                          "adjustment (default is out.bmp)\n"
+                          "-q  Quick search for the first 50 overexposed "
+                          "pixels\n";
 
     printf("%s", help_message);
 }
