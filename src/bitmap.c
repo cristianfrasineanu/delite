@@ -89,7 +89,7 @@ uint32_t BitmapGetPixelData(const struct Bitmap *bitmap,
 }
 
 int BitmapFillPixelData(struct Bitmap *bitmap, union Raw_Pixel_Data *data) {
-    unsigned i = 0;
+    uint32_t i = 0;
     int status = EXIT_SUCCESS;
 
     if ((NULL == bitmap) || (NULL == data)) {

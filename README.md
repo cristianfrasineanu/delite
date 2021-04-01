@@ -34,14 +34,21 @@ Flag | Details
 -p | The first number of pixels to adjust for over exposure (default is 50)
 -l | Adjustment level given as a percentage (default is 50%)
 -o | Output preview file as a result of the adjustment (default is out.bmp)
+-q | Quick search for the first 50 overexposed pixels
 
-The resulting pixel data will also be written to a separate binary file, named `altered.bin`, in the current directory.
+The resulting pixel data will also be written to a separate binary file, named `altered.bin`, in the current directory. If running with `-q`, the values of the pixels and their position will be only printed and there will be no bitmap generation.
 
 Example:
 Detect overexposed pixels by turning the first 50 pixels which have the highest value black:
 
 ```shell
 delite -f demo/sendor_data.bin -l 100 -o adjusted.bmp
+```
+
+Print the first 50 overexposed pixels and their position:
+
+```shell
+delite -f demo/sensor_data.bin -q
 ```
 
 ### Input format

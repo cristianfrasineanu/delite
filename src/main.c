@@ -140,6 +140,18 @@ static int RunAdjustment(const char *input_file_path,
                          unsigned pixel_count,
                          unsigned adjustment_level);
 
+/**
+ *  @brief Run quick search for the first 50 overexposed pixels.
+ * 
+ *  Read the input raw byte stream and print the first 50 overexposed
+ *  pixel values and their position.
+ *  @param input_file_path    Path to the input file 
+ * 
+ *  @return EXIT_SUCCESS, if successful.
+ *          EXIT_FAILURE, otherwise.
+ */
+static int RunQuickSearch(const char *input_file_path);
+
 /****************************************************************************/
 
 /**
@@ -159,6 +171,7 @@ int main (int argc, char **argv) {
     char preview_file_path[256] = "out.bmp";
     unsigned pixel_count = 50U;
     unsigned adjustment_level = 50U;
+    bool quick_search = false;
     int status = EXIT_SUCCESS;
 
     /* Need at least one argument. */ 
@@ -236,6 +249,11 @@ int main (int argc, char **argv) {
                         }
 
                         break;
+                    /* Quick search flag */
+                    case 'q':
+                        quick_search = true;
+
+                        break;
                     /* Invalid input */
                     default:
                         PrintUsage();
@@ -256,8 +274,13 @@ int main (int argc, char **argv) {
             status = EXIT_FAILURE;
         }
         else if (EXIT_SUCCESS == status) {
-            status = RunAdjustment(input_file_path, preview_file_path,
-                                   pixel_count, adjustment_level);
+            if (true == quick_search) {
+                status = RunQuickSearch(input_file_path);    
+            }
+            else {
+                status = RunAdjustment(input_file_path, preview_file_path,
+                                       pixel_count, adjustment_level);
+            }
         }
     }
 
@@ -355,8 +378,8 @@ static uint32_t ReadBytesFromFile(FILE *in, void **data) {
 static int GeneratePreviewBitmapFrom16Bit(const uint16_t *data, 
                                           uint32_t size,
                                           struct Bitmap **bmp) {
-    unsigned i = 0;
-    unsigned image_size = 0;
+    uint32_t i = 0;
+    uint32_t image_size = 0;
     union Raw_Pixel_Data *scaled_data = NULL;
     int status = EXIT_SUCCESS;
     
@@ -511,5 +534,46 @@ static int RunAdjustment(const char *input_file_path,
     free(raw_data);
     free(output_bmp);
 
+    return status;
+}
+
+static int RunQuickSearch(const char *input_file_path) {
+    FILE *in = NULL;
+    uint16_t *raw_data = NULL;
+    uint16_t max = 0;
+    uint32_t max_pos = 0;
+    uint32_t raw_data_size = 0;
+    uint32_t i = 0;
+    uint32_t j = 0;
+    int status = EXIT_SUCCESS;
+    
+    in = fopen(input_file_path, "rb");
+    raw_data_size = ReadBytesFromFile(in, (void **) &raw_data);
+
+    /* Need at least 50 pixels. */
+    if (raw_data_size > 100U) {
+        printf("Overexposed pixel data (pos is the pixel index "
+               "relative to the beginning of the file): \n");
+        for (i = 0; i < 50; i++) {
+            max = 0;
+            max_pos = 0;
+
+            for (j = 0; j < raw_data_size; j++) {
+                if (raw_data[j] > max) {
+                    max = raw_data[j];
+                    max_pos = j;
+                } 
+            }
+            /* Zero out the max so we exclude it in the further iterations. */
+            raw_data[max_pos] = 0;
+            printf("# Pixel value: 0x%04X - Pos: %u\n", max, max_pos);
+        }
+    }
+
+    if (NULL != in) {
+        fclose(in);
+    }
+    free(raw_data);
+    
     return status;
 }
